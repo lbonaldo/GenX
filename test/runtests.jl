@@ -13,3 +13,7 @@ end
 @testset "Expression manipulation" begin
     include("expression_manipulation_test.jl")
 end
+
+@testset "Time domain reduction" begin
+    include("time_domain_reduction.jl")
+end
