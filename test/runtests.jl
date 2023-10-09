@@ -1,6 +1,9 @@
 using GenX
-using Logging
 using Test
+using Logging
+
+include("utilities.jl")
+
 
 @testset "Simple operation" begin
     include("simple_op_test.jl")
@@ -16,4 +19,8 @@ end
 
 @testset "Time domain reduction" begin
     include("time_domain_reduction.jl")
+end
+
+@testset "VRE and storage" begin
+    include("VREStor.jl")
 end
