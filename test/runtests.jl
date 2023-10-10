@@ -37,3 +37,7 @@ end
 @testset "Method of Morris" begin
     include("methodofmorris.jl")
 end
+
+@testset "Multi Stage" begin
+    include("multistage.jl")
+end
