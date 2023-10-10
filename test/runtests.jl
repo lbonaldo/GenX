@@ -19,6 +19,10 @@ end
 
 # Test GenX modules
 @testset verbose=true "GenX modules" begin
+    @testset "Three zones" begin
+        include("test_threezones.jl")
+    end
+
     @testset "Time domain reduction" begin
         include("test_time_domain_reduction.jl")
     end

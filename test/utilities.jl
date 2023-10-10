@@ -4,6 +4,8 @@ using Dates
 using Logging, LoggingExtras
 
 
+const TestResult = Union{Test.Result, String}
+
 function run_genx_case_testing(test_path::AbstractString, genx_setup::Dict)
     @assert genx_setup["MultiStage"] ∈ [0, 1]
     # Create a ConsoleLogger that prints any log messages with level >= Warn to stderr
@@ -52,7 +54,7 @@ function run_genx_case_multistage_testing(test_path::AbstractString, genx_setup:
 end
 
 
-function write_testlog(test_path::AbstractString, message::AbstractString, test_result::Test.Result)
+function write_testlog(test_path::AbstractString, message::AbstractString, test_result::TestResult)
     # Save the results to a log file
     # Format: datetime, objective value, tolerance, test result
 
@@ -63,8 +65,8 @@ function write_testlog(test_path::AbstractString, message::AbstractString, test_
     log_file_path = joinpath("Logs", "$(test_path).log")
 
     logger = FormatLogger(open(log_file_path, "a")) do io, args
-        # Write only the message
-        println(io, args.message)
+        # Write only if the test passed or failed
+        println(io, split(args.message,"\n")[1])
     end
 
     with_logger(logger) do
@@ -73,12 +75,12 @@ function write_testlog(test_path::AbstractString, message::AbstractString, test_
     end
 end
 
-function write_testlog(test_path::AbstractString, obj_test::Real, optimal_tol::Real, test_result::Test.Result)
+function write_testlog(test_path::AbstractString, obj_test::Real, optimal_tol::Real, test_result::TestResult)
     message = "$obj_test ± $optimal_tol"
     write_testlog(test_path, message, test_result)
 end
 
-function write_testlog(test_path::AbstractString, obj_test::Vector{<:Real}, optimal_tol::Vector{<:Real}, test_result::Test.Result)
+function write_testlog(test_path::AbstractString, obj_test::Vector{<:Real}, optimal_tol::Vector{<:Real}, test_result::TestResult)
     @assert length(obj_test) == length(optimal_tol)
     message = join(join.(zip(obj_test,optimal_tol), " ± "), ", ")
     write_testlog(test_path, message, test_result)
