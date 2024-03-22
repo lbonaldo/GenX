@@ -91,10 +91,13 @@ multistage_cols = [
 case_out_tree = Dict{String, Array{String}}(
     "policies" => [
         "Energy_share_requirement.csv",
+        "Energy_share_requirement_slack.csv",
         "Capacity_reserve_margin.csv",
+        "Capacity_reserve_margin_slack.csv",
         "Minimum_capacity_requirement.csv",
         "Maximum_capacity_requirement.csv",
         "CO2_cap.csv",
+        "CO2_cap_slack.csv",
     ],
     "system" => [
         "Fuels_data.csv",
