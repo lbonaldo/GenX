@@ -144,6 +144,7 @@ end
 function create_settings_folder(path_in::AbstractString, path_out::AbstractString)
     settings_path_in = joinpath(path_in, "Settings")
     !isdir(settings_path_in) && return nothing
+    @info("Creating settings folder")
     settings_path_out = joinpath(path_out, "settings")
     settings_files = readdir(settings_path_in)
     mkpath(settings_path_out)
@@ -151,20 +152,22 @@ function create_settings_folder(path_in::AbstractString, path_out::AbstractStrin
 end
 
 function create_system_folder(path_in::AbstractString, path_out::AbstractString, filenames::Array{String})
+    @info("Creating system folder")
     system_path_out = joinpath(path_out, "system")
     mkpath(system_path_out)
     _copy_files(path_in, system_path_out, filenames)
 end
 
 function create_policies_folder(path_in::AbstractString, path_out::AbstractString, filenames::Array{String})
+    @info("Creating policies folder")
     policies_path_out = joinpath(path_out, "policies")
     mkpath(policies_path_out)
     _copy_files(path_in, policies_path_out, filenames)
 end
 
 function create_resources_folder(path_out::AbstractString)
+    @info("Creating resources folder")
     resources_folder = joinpath(path_out, "resources")
-    (resources_folder)
     policy_folder = joinpath(resources_folder, "policy_assignments")
     mkpath(policy_folder)
     return resources_folder, policy_folder
@@ -193,6 +196,7 @@ function restr_policyfile!(policy_info::NamedTuple, df::DataFrame)
     # if the policytag is not in the dataframe, return an empty dataframe
     !any(startswith(x, policy_info.oldtag) for x in names(df)) && return DataFrame()
         
+    @info("Writing file $(policy_info.filename)")
     data = df[:, Cols(x -> x == "Resource" || startswith(x, policy_info.oldtag))]
     data = data[any.(>(0), eachrow(data[:, 2:end])), :]
     # remote them from df 
@@ -207,10 +211,20 @@ function restr_policyfile!(policy_info::NamedTuple, df::DataFrame)
 end
 
 function create_multistage_file!(df::DataFrame)
+    @info("Writing file Resource_multistage_data.csv")
     data = df[:, Cols(x -> x == "Resource" || x in multistage_cols)]
     # remove them from df
     df = select!(df, Not(Cols(x -> x in multistage_cols)))
     return data
+end
+
+function upgrade_newbuild_canretire_interface!(df::DataFrame)
+    if string(:Can_Retire) ∉ names(df)
+        @info("Upgrading the Can_Retire and New_Build interface")
+        df.Can_Retire = convert(Vector{Int}, (df.New_Build .!= -1))
+        df.New_Build = convert(Vector{Int}, (df.New_Build .== 1))
+    end
+    return nothing
 end
 
 function split_generators_data(path_in::AbstractString, path_out::AbstractString)
@@ -219,6 +233,8 @@ function split_generators_data(path_in::AbstractString, path_out::AbstractString
     dfGen_or = CSV.read(joinpath(path_in, "Generators_data.csv"), DataFrame)
     # remove R_ID
     dfGen_or = "R_ID" in names(dfGen_or) ? select!(dfGen_or, Not(:R_ID)) : dfGen_or
+    # upgrade the Can_Retire and New_Build interface
+    upgrade_newbuild_canretire_interface!(dfGen_or)
 
     # create resources and policy folders
     resources_folder, policy_folder = create_resources_folder(path_out)
@@ -271,14 +287,17 @@ function split_generators_data(path_in::AbstractString, path_out::AbstractString
     for resource in resource_tags
         out_file = joinpath(resources_folder, resourcetype_filenames[resource])
         data = restr_resourcefile(dfGen_or, resourcetype_specific_cols, resource)
-        !isempty(data) && CSV.write(out_file, data, writeheader=true)
+        if !isempty(data)  
+            @info("Writing file $(resourcetype_filenames[resource])") 
+            CSV.write(out_file, data, writeheader=true)
+        end
     end
 end
 
 function create_tdr_folder(path_in::AbstractString, path_out::AbstractString)
     tdr_path_in = joinpath(path_in, "TDR_Results")
     tdr_path_out = joinpath(path_out, "TDR_results")
-    isdir(tdr_path_in) && cp(tdr_path_in, tdr_path_out)
+    isdir(tdr_path_in) && (@info("Creating TDR folder"); cp(tdr_path_in, tdr_path_out))
 end
 
 # execute the restrucutring
