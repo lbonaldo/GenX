@@ -8,6 +8,7 @@ function default_settings()
         "EnergyShareRequirement" => 0,
         "CapacityReserveMargin" => 0,
         "CO2Cap" => 0,
+        "IncludeUpstreamCO2" => 0,
         "StorageLosses" => 1,
         "VirtualChargeDischargeCost" => 1,  # $/MWh
         "MinCapReq" => 0,

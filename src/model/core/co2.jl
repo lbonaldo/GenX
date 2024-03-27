@@ -50,7 +50,7 @@ eEmissionsCaptureByPlant_{g,t} = CO2\_Capture\_Fraction_y * vFuel_{y,t}  * CO2_{
 ```
 
 """
-function co2!(EP::Model, inputs::Dict)
+function co2!(EP::Model, inputs::Dict, setup::Dict)
 
     println("CO2 Module")
 
@@ -63,6 +63,8 @@ function co2!(EP::Model, inputs::Dict)
     CCS = inputs["CCS"]
 
     fuel_CO2 = inputs["fuel_CO2"] # CO2 content of fuel (t CO2/MMBTU or ktCO2/Billion BTU)
+    fuel_CO2_upstream = inputs["fuel_CO2_upstream"] # CO2 upstream of fuel (t CO2/MMBTU or ktCO2/Billion BTU)
+
     omega = inputs["omega"]
     if !isempty(MULTI_FUELS)
         max_fuels = inputs["MAX_NUM_FUELS"]
@@ -75,9 +77,9 @@ function co2!(EP::Model, inputs::Dict)
     if isempty(CCS)
         @expression(EP, eEmissionsByPlant[y=1:G, t=1:T], 
             if y in SINGLE_FUEL
-                ((1-biomass(gen[y])) *(EP[:vFuel][y, t] + EP[:vStartFuel][y, t]) * fuel_CO2[fuel(gen[y])])
+                ((1-biomass(gen[y])) *(EP[:vFuel][y, t] + EP[:vStartFuel][y, t]) * (fuel_CO2[fuel(gen[y])] + fuel_CO2_upstream[fuel(gen[y])]))
             else
-                sum(((1-biomass(gen[y])) *(EP[:vMulFuels][y, i, t] + EP[:vMulStartFuels][y, i, t]) * fuel_CO2[fuel_cols(gen[y], tag=i)]) for i = 1:max_fuels)
+                sum((1-biomass(gen[y])) * (EP[:vMulFuels][y, i, t] + EP[:vMulStartFuels][y, i, t]) * (fuel_CO2[fuel_cols(gen[y], tag=i)] + fuel_CO2_upstream[fuel_cols(gen[y], tag=i)]) for i = 1:max_fuels)
             end)                                                                                              
     else 
         @info "Using the CO2 module to determine the CO2 emissions of CCS-equipped plants"
@@ -87,10 +89,12 @@ function co2!(EP::Model, inputs::Dict)
         @expression(EP, eEmissionsByPlant[y=1:G, t=1:T],
             if y in SINGLE_FUEL
                 (1-biomass(gen[y]) - co2_capture_fraction(gen[y])) * EP[:vFuel][y, t]  * fuel_CO2[fuel(gen[y])]+
-                (1-biomass(gen[y]) - co2_capture_fraction_startup(gen[y])) * EP[:eStartFuel][y, t] * fuel_CO2[fuel(gen[y])]
+                (1-biomass(gen[y]) - co2_capture_fraction_startup(gen[y])) * EP[:eStartFuel][y, t] * fuel_CO2[fuel(gen[y])] +
+                (EP[:vFuel][y, t] + EP[:vStartFuel][y, t])  * fuel_CO2_upstream[fuel(gen[y])]
             else
                 sum((1-biomass(gen[y]) - co2_capture_fraction(gen[y])) * EP[:vMulFuels][y, i, t] * fuel_CO2[fuel_cols(gen[y], tag=i)] for i = 1:max_fuels)+
-                sum((1-biomass(gen[y]) - co2_capture_fraction_startup(gen[y])) * EP[:vMulStartFuels][y, i, t] * fuel_CO2[fuel_cols(gen[y], tag=i)] for i = 1:max_fuels)
+                sum((1-biomass(gen[y]) - co2_capture_fraction_startup(gen[y])) * EP[:vMulStartFuels][y, i, t] * fuel_CO2[fuel_cols(gen[y], tag=i)] for i = 1:max_fuels) +
+                sum((EP[:vMulFuels][y, i, t] + EP[:vMulStartFuels][y, i, t]) * fuel_CO2_upstream[fuel_cols(gen[y], tag=i)] for i = 1:max_fuels)
             end)
 
         # CO2 captured from power plants in "Generators_data.csv"

@@ -10,32 +10,63 @@ function load_fuels_data!(setup::Dict, path::AbstractString, inputs::Dict)
     # if TDR is used, my_dir = TDR_directory, else my_dir = "system"
     my_dir = get_systemfiles_path(setup, TDR_directory, path)
     
-    filename = "Fuels_data.csv"
-    fuels_in = load_dataframe(joinpath(my_dir, filename))
+    # TODO: add backwards compatibility with old file name "Fuels_data.csv"
+    if isfile(joinpath(my_dir, "Fuels_data.csv"))
+        filename = "Fuels_data.csv"
+        fuels_in = load_dataframe(joinpath(my_dir, filename))
+        inputs["IncludeUpstreamCO2"] = 0
 
-    for nonfuel in ("None",)
-        ensure_column!(fuels_in, nonfuel, 0.0)
+        for nonfuel in ("None",)
+            ensure_column!(fuels_in, nonfuel, 0.0)
+        end
+
+        fuels = names(fuels_in)[2:end]
+        costs = Matrix(fuels_in[2:end, 2:end])
+        CO2_content = fuels_in[1, 2:end] # tons CO2/MMBtu
+        CO2_upstream = zeros(length(fuels))
+    
+    else
+        filename = "Fuels_price.csv" # TODO: add backwards compatibility with old file name "Fuels_data.csv"
+        fuels_price = load_dataframe(joinpath(my_dir, filename))
+
+        filename = "Fuels_CO2.csv"
+        fuels_co2 = load_dataframe(joinpath(my_dir, filename))
+
+        for nonfuel in ("None",)
+            ensure_column!(fuels_price, nonfuel, 0.0)
+            ensure_column!(fuels_co2, nonfuel, 0.0)
+        end
+
+        # Fuel costs & CO2 emissions rate for each fuel type
+        fuels = names(fuels_price)[2:end]
+        costs = Matrix(fuels_price[:, 2:end])  # first column is the fuel names
+        # CO2_content = fuels_co2[2, 2:end] # tons CO2/MMBtu
+        CO2_content = [fuels_co2[1, fuel_name] for fuel_name in fuels]
+
+        CO2_upstream = zeros(length(fuels))
+        if setup["IncludeUpstreamCO2"] == 1
+            CO2_upstream = [fuels_co2[2, fuel_name] for fuel_name in fuels]
+        end
     end
 
-    # Fuel costs & CO2 emissions rate for each fuel type
-    fuels = names(fuels_in)[2:end]
-    costs = Matrix(fuels_in[2:end, 2:end])
-    CO2_content = fuels_in[1, 2:end] # tons CO2/MMBtu
     fuel_costs = Dict{AbstractString, Array{Float64}}()
     fuel_CO2 = Dict{AbstractString, Float64}()
+    fuel_CO2_upstream = Dict{AbstractString, Float64}()
 
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
 
     for i = 1:length(fuels)
-            # fuel cost is in $/MMBTU w/o scaling, $/Billon BTU w/ scaling
-            fuel_costs[fuels[i]] = costs[:,i] / scale_factor
-            # No need to scale fuel_CO2, fuel_CO2 is ton/MMBTU or kton/Billion BTU 
-            fuel_CO2[fuels[i]] = CO2_content[i] 
+        # fuel cost is in $/MMBTU w/o scaling, $/Billon BTU w/ scaling
+        fuel_costs[fuels[i]] = costs[:,i] / scale_factor
+        # No need to scale fuel_CO2 and fuel_CO2_upstream, they are in ton/MMBTU or kton/Billion BTU 
+        fuel_CO2[fuels[i]] = CO2_content[i]
+        fuel_CO2_upstream[fuels[i]] = CO2_upstream[i] 
     end
 
     inputs["fuels"] = fuels
     inputs["fuel_costs"] = fuel_costs
     inputs["fuel_CO2"] = fuel_CO2
+    inputs["fuel_CO2_upstream"] = fuel_CO2_upstream
 
     println(filename * " Successfully Read!")
 

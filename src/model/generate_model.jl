@@ -125,7 +125,7 @@ function generate_model(setup::Dict,inputs::Dict,OPTIMIZER::MOI.OptimizerWithAtt
 
 	fuel!(EP, inputs, setup)
 
-	co2!(EP, inputs) 
+	co2!(EP, inputs, setup) 
 
 	if setup["OperationalReserves"] > 0
 		operational_reserves!(EP, inputs, setup)
