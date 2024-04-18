@@ -37,6 +37,9 @@ using Random
 using RecursiveArrayTools
 using Statistics
 using HiGHS
+using Logging
+
+using PrecompileTools: @setup_workload, @compile_workload
 
 # Global scaling factor used when ParameterScale is on to shift values from MW to GW
 # DO NOT CHANGE THIS (Unless you do so very carefully)
@@ -74,5 +77,7 @@ include("time_domain_reduction/precluster.jl")
 
 include_all_in_folder("multi_stage")
 include_all_in_folder("additional_tools")
+
+include("startup/genx_startup.jl")
 
 end
