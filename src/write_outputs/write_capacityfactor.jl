@@ -14,6 +14,7 @@ function write_capacityfactor(path::AbstractString, inputs::Dict, setup::Dict, E
     MUST_RUN = inputs["MUST_RUN"]
     ELECTROLYZER = inputs["ELECTROLYZER"]
     VRE_STOR = inputs["VRE_STOR"]
+    ALLAM_CYCLE_LOX = inputs["ALLAM_CYCLE_LOX"]
 
     dfCapacityfactor = DataFrame(Resource = inputs["RESOURCE_NAMES"],
         Zone = zone_id.(gen),
@@ -60,7 +61,7 @@ function write_capacityfactor(path::AbstractString, inputs::Dict, setup::Dict, E
     EXISTING = intersect(findall(x -> x >= 1, dfCapacityfactor.AnnualSum),
         findall(x -> x >= 1, dfCapacityfactor.Capacity))
     # We calculate capacity factor for thermal, vre, hydro and must run. Not for storage and flexible demand
-    CF_GEN = intersect(union(THERM_ALL, VRE, HYDRO_RES, MUST_RUN, VRE_STOR), EXISTING)
+    CF_GEN = intersect(union(THERM_ALL, VRE, HYDRO_RES, MUST_RUN, VRE_STOR, ALLAM_CYCLE_LOX), EXISTING)
     dfCapacityfactor.CapacityFactor[CF_GEN] .= (dfCapacityfactor.AnnualSum[CF_GEN] ./
                                                 dfCapacityfactor.Capacity[CF_GEN]) /
                                                sum(inputs["omega"][t] for t in 1:T)
