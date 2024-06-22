@@ -14,6 +14,7 @@ Returns `nothing`.
 
 """
 function precompile()
+    @info "Running precompile script for GenX. This may take a few minutes."
     redirect_stdout(devnull) do
         warnerror_logger = ConsoleLogger(stderr, Logging.Warn)
         with_logger(warnerror_logger) do
