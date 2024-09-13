@@ -163,6 +163,11 @@ function generate_model(setup::Dict, inputs::Dict, OPTIMIZER::MOI.OptimizerWithA
         hydro_res!(EP, inputs, setup)
     end
 
+    # Allam Cycle LOX
+    if !isempty(inputs["ALLAM_CYCLE_LOX"])
+        allamcyclelox!(EP, inputs, setup)
+    end
+
     if !isempty(inputs["ELECTROLYZER"])
         electrolyzer!(EP, inputs, setup)
     end
@@ -189,11 +194,6 @@ function generate_model(setup::Dict, inputs::Dict, OPTIMIZER::MOI.OptimizerWithA
     # Model constraints, variables, expressions related to the co-located VRE-storage resources
     if !isempty(inputs["VRE_STOR"])
         vre_stor!(EP, inputs, setup)
-    end
-
-    # Allam Cycle LOX
-    if !isempty(inputs["ALLAM_CYCLE_LOX"])
-        allamcyclelox!(EP, inputs, setup)
     end
 
     # Policies

@@ -12,6 +12,7 @@ function write_charge(path::AbstractString, inputs::Dict, setup::Dict, EP::Model
     STOR_ALL = inputs["STOR_ALL"]
     FLEX = inputs["FLEX"]
     ELECTROLYZER = inputs["ELECTROLYZER"]
+    ALLAM_CYCLE_LOX = inputs["ALLAM_CYCLE_LOX"] 
     VRE_STOR = inputs["VRE_STOR"]
     VS_STOR = !isempty(VRE_STOR) ? inputs["VS_STOR"] : []
 
@@ -33,6 +34,9 @@ function write_charge(path::AbstractString, inputs::Dict, setup::Dict, EP::Model
     end
     if !isempty(VS_STOR)
         charge[VS_STOR, :] = value.(EP[:vCHARGE_VRE_STOR][VS_STOR, :]) * scale_factor
+    end
+    if !isempty(ALLAM_CYCLE_LOX)
+        charge[ALLAM_CYCLE_LOX, :] = value.(EP[:vCHARGE_ALLAM][ALLAM_CYCLE_LOX, :]) * scale_factor
     end
 
     dfCharge.AnnualSum .= charge * inputs["omega"]
