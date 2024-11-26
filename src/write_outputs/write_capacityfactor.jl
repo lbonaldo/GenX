@@ -15,7 +15,6 @@ function write_capacityfactor(path::AbstractString, inputs::Dict, setup::Dict, E
     ELECTROLYZER = inputs["ELECTROLYZER"]
     VRE_STOR = inputs["VRE_STOR"]
     ALLAM_CYCLE_LOX = inputs["ALLAM_CYCLE_LOX"]
-    sco2turbine = 1
 
     dfCapacityfactor = DataFrame(Resource = inputs["RESOURCE_NAMES"],
         Zone = zone_id.(gen),
@@ -56,13 +55,6 @@ function write_capacityfactor(path::AbstractString, inputs::Dict, setup::Dict, E
                                                       etainverter.(gen_VRE_STOR[(gen_VRE_STOR.wind .!= 0) .& (gen_VRE_STOR.solar .!= 0)])) *
                                                      scale_factor
         end
-    end
-
-    if !isempty(ALLAM_CYCLE_LOX)
-        # dfCapacityfactor.AnnualSum[ALLAM_CYCLE_LOX] .= value.(EP[:vP][ALLAM_CYCLE_LOX, :]).data *
-        #                                         inputs["omega"] * scale_factor
-        dfCapacityfactor.Capacity[ALLAM_CYCLE_LOX] .= value.(EP[:eTotalCap_AllamcycleLOX][ALLAM_CYCLE_LOX, sco2turbine]).data *
-                                            scale_factor
     end
 
     # We only calcualte the resulted capacity factor with total capacity > 1MW and total generation > 1MWh
