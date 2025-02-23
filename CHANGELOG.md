@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - New resource type: Allam Cycle with Oxygen Storage (#772).
+- Default option, `"EnableJuMPDirectMode"`, to build the model more efficiently.
+Models running with, non-default, solvers Cbc and Clp will fail unless
+`"EnableJuMPDirectMode"` is set to false (#835).
 
 ## [0.4.4] - 2025-02-04
 
