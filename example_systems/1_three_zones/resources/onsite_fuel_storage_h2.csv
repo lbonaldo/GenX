@@ -1,0 +1,4 @@
+Resource,Zone,Model,New_Build,Can_Retire,Existing_Cap_MW,Existing_Cap_MWh,Max_Cap_MW
+MA_h2,1,1,1,0,0,0,-1
+CT_h2,2,1,1,0,0,0,-1
+ME_h2,3,1,1,0,0,0,-1
