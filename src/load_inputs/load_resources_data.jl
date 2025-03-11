@@ -63,7 +63,8 @@ function _get_summary_map()
         :Thermal => "Thermal",
         :Vre => "VRE",
         :MustRun => "Must_run",
-        :VreStorage => "VRE_and_storage")
+        :VreStorage => "VRE_and_storage",
+        :OnSiteFuelStorage => "Onsite_fuel_storage")
     max_length = maximum(length.(values(names_map)))
     for (k, v) in names_map
         names_map[k] = v * repeat(" ", max_length - length(v))
@@ -594,6 +595,10 @@ function create_resource_array(setup::Dict, resources_path::AbstractString)
 
     # get filename and GenX type for each type of resources available in GenX
     resources_info = _get_resource_info()
+    onsite_fuel_storage_info = _get_onsite_fuel_storage_info(resources_path)
+
+    # merge resources_info with onsite_fuel_storage_info
+    resources_info = merge(resources_info, onsite_fuel_storage_info)
 
     # load each resource type, scale data and return array of resources
     resources = create_resource_array(resources_path, resources_info, scale_factor)
@@ -1491,4 +1496,21 @@ function load_multi_fuels_data!(inputs::Dict,
     if haskey(inputs, "THERM_COMMIT_PWFU") && !isempty(inputs["THERM_COMMIT_PWFU"])
         error("Multi-fuel option is not available when piece-wise heat rates are used. Please remove multi fuels to avoid this error.")
     end
+end
+
+function _get_onsite_fuel_storage_info(path::AbstractString)
+    # read all the other (.csv) files starting with onsite_fuel_storage
+    files = readdir(path)
+    onsite_fuel_storage_files = [file for file in files if startswith(file, "onsite_fuel_storage")]
+    onsite_fuel_storage_names = Tuple(Symbol(split(file, ".")[1]) for file in onsite_fuel_storage_files)
+    @info "Found OnSiteFuelStorage files: $onsite_fuel_storage_files"
+    for file in onsite_fuel_storage_files
+        @info "Found OnSiteFuelStorage file: $file"
+    end
+
+    # update resources_info to include OnSiteFuelStorage
+    onsite_fuel_storage_info = NamedTuple{onsite_fuel_storage_names}(
+        (filename = f, type = GenX.OnSiteFuelStorage) for f in onsite_fuel_storage_files
+    )
+    return onsite_fuel_storage_info
 end

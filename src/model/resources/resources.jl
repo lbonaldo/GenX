@@ -20,7 +20,8 @@ const resource_types = (:Thermal,
     :MustRun,
     :FlexDemand,
     :VreStorage,
-    :Electrolyzer)
+    :Electrolyzer, 
+    :OnSiteFuelStorage)
 
 # Create composite types (structs) for each resource type in resource_types
 for r in resource_types
@@ -1236,3 +1237,8 @@ function has_all_options_not_contributing(retrofit_res::AbstractResource,
         ids_retrofit_options(rs),
         ids_contribute_min_retirement(rs)))
 end
+
+function get_attr(r::AbstractResource, attr::Symbol, default_value::Real)
+    return get(r, attr, default_value)
+end
+findall(r -> isa(r, GenX.OnSiteFuelStorage) && occursin("diesel", r.resource), gen)
