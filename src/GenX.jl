@@ -37,11 +37,12 @@ using RecursiveArrayTools
 using Statistics
 using HiGHS
 using Logging
-using PowerSystems
-using InfrastructureSystems
+import PowerSystems
+import InfrastructureSystems
 using PowerSystemsInvestmentsPortfolios
 const PSIP=PowerSystemsInvestmentsPortfolios
 const IS=InfrastructureSystems
+const PSY=PowerSystems
 
 using PrecompileTools: @compile_workload
 
