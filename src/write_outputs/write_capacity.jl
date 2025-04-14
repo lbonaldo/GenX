@@ -36,10 +36,10 @@ function write_capacity(path::AbstractString, inputs::Dict, setup::Dict, EP::Mod
         end
     end
 
-    capacity_constraint_dual = zeros(size(inputs["RESOURCE_NAMES"]))
-    for y in ids_with_positive(gen, max_cap_mw)
-        capacity_constraint_dual[y] = -dual.(EP[:cMaxCap][y])
-    end
+    # capacity_constraint_dual = zeros(size(inputs["RESOURCE_NAMES"]))
+    # for y in ids_with_positive(gen, max_cap_mw)
+    #     capacity_constraint_dual[y] = -dual.(EP[:cMaxCap][y])
+    # end
 
     capcharge = zeros(size(inputs["RESOURCE_NAMES"]))
     retcapcharge = zeros(size(inputs["RESOURCE_NAMES"]))
@@ -87,7 +87,7 @@ function write_capacity(path::AbstractString, inputs::Dict, setup::Dict, EP::Mod
         RetroCap = retrocapdischarge[:], #### Need to change later
         NewCap = capdischarge[:],
         EndCap = value.(EP[:eTotalCap]),
-        CapacityConstraintDual = capacity_constraint_dual[:],
+        # CapacityConstraintDual = capacity_constraint_dual[:],
         StartEnergyCap = existingcapenergy[:],
         RetEnergyCap = retcapenergy[:],
         NewEnergyCap = capenergy[:],
@@ -102,7 +102,7 @@ function write_capacity(path::AbstractString, inputs::Dict, setup::Dict, EP::Mod
         dfCap.RetroCap = dfCap.RetroCap * ModelScalingFactor
         dfCap.NewCap = dfCap.NewCap * ModelScalingFactor
         dfCap.EndCap = dfCap.EndCap * ModelScalingFactor
-        dfCap.CapacityConstraintDual = dfCap.CapacityConstraintDual * ModelScalingFactor
+        # dfCap.CapacityConstraintDual = dfCap.CapacityConstraintDual * ModelScalingFactor
         dfCap.StartEnergyCap = dfCap.StartEnergyCap * ModelScalingFactor
         dfCap.RetEnergyCap = dfCap.RetEnergyCap * ModelScalingFactor
         dfCap.NewEnergyCap = dfCap.NewEnergyCap * ModelScalingFactor
@@ -116,7 +116,7 @@ function write_capacity(path::AbstractString, inputs::Dict, setup::Dict, EP::Mod
         StartCap = sum(dfCap[!, :StartCap]), RetCap = sum(dfCap[!, :RetCap]),
         NewCap = sum(dfCap[!, :NewCap]), EndCap = sum(dfCap[!, :EndCap]),
         RetroCap = sum(dfCap[!, :RetroCap]),
-        CapacityConstraintDual = "n/a",
+        # CapacityConstraintDual = "n/a",
         StartEnergyCap = sum(dfCap[!, :StartEnergyCap]),
         RetEnergyCap = sum(dfCap[!, :RetEnergyCap]),
         NewEnergyCap = sum(dfCap[!, :NewEnergyCap]),
@@ -129,4 +129,11 @@ function write_capacity(path::AbstractString, inputs::Dict, setup::Dict, EP::Mod
     dfCap = vcat(dfCap, total)
     CSV.write(joinpath(path, "capacity.csv"), dfCap)
     return dfCap
+end
+
+function process_generation_capacity(case, inputs, setup, EP)
+    df_gen = GenX.write_capacity(case, inputs, setup, EP)
+    return df_gen |> 
+        df -> select!(df, [:Resource, :Zone, :EndCap]) |>
+        df -> filter(row -> row.Resource != "Total", df)
 end

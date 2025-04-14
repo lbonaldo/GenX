@@ -20,4 +20,17 @@ function write_nw_expansion(path::AbstractString, inputs::Dict, setup::Dict, EP:
     end
 
     CSV.write(joinpath(path, "network_expansion.csv"), dfTransCap)
+    return dfTransCap
+end
+
+function process_transmission_capacity(case, inputs, setup, EP)
+    df_transmission = GenX.write_nw_expansion(case, inputs, setup, EP)
+    
+    # Process transmission data
+    df_transmission = df_transmission |>
+        df -> select!(df, [:Line, :New_Trans_Capacity]) |>
+        df -> transform!(df, 
+            :Line => (x -> ["line_$x" for x in x]) => :Resource,
+            :New_Trans_Capacity => :EndCap
+        )
 end

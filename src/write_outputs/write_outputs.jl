@@ -616,3 +616,23 @@ function write_full_time_series_reconstruction(
     CSV.write(joinpath(output_path, "$name.csv"), dfOut_full, header = false)
     return nothing
 end
+
+function prepare_capacity_df(case, inputs, setup, EP)
+    # Get and process generation capacity data
+    df_gen = process_generation_capacity(case, inputs, setup, EP)
+    
+    # Get and process transmission capacity data
+    df_transmission = process_transmission_capacity(case, inputs, setup, EP)
+    
+    # Combine and finalize dataframes
+    df_combined = combine_capacity_data(df_gen, df_transmission)
+    
+    return df_combined
+end
+
+
+function combine_capacity_data(df_gen, df_transmission)
+    # Combine dataframes and select final columns
+    return vcat(df_gen, df_transmission, cols=:union) |>
+        df -> select!(df, [:Resource, :Zone, :Line, :EndCap])
+end
