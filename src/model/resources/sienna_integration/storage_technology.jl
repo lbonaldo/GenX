@@ -1,47 +1,41 @@
 """Get [`StorageTechnology`](@ref) `dn_time`."""
-down_time(s::StorageTechnology) = get_dn_time(s)
+down_time(s::StorageTechnology) = get_time_limits(s).down
 """Get [`StorageTechnology`](@ref) `lifetime`."""
 lifetime(s::StorageTechnology) = get_lifetime(s)
 """Get [`StorageTechnology`](@ref) `available`."""
-new_build(s::StorageTechnology) = Bool(get_available(s) && get_initial_capacity(s) == 0.0)
+new_build(s::StorageTechnology) = Bool(get_available(s) && (max_cap_mw(s) == 0.0 || max_cap_mwh(s) == 0.0))
 """Get [`StorageTechnology`](@ref) `co2`."""
 co2_content(s::StorageTechnology) = get_co2(s)
 """Get [`StorageTechnology`](@ref) `name`."""
 resource_name(s::StorageTechnology) = get_name(s)
 """Get [`StorageTechnology`](@ref) `id`."""
 resource_id(s::StorageTechnology) = get_id(s)
-"""Get [`StorageTechnology`](@ref) `initial_capacity`."""
-existing_cap_mw(s::StorageTechnology) = get_existing_capacity_discharge(s)
-existing_cap_mwh(s::StorageTechnology) = get_existing_capacity_energy(s)
-existing_charge_cap_mw(s::StorageTechnology) = get_existing_capacity_charge(s)
 """Get [`StorageTechnology`](@ref) `region`."""
 region(s::StorageTechnology) = get_region(s)
 """Get [`StorageTechnology`](@ref) `capacity_limits`."""
-max_cap_mw(s::StorageTechnology) = get_max(get_capacity_power_limits(s))
+max_cap_mw(s::StorageTechnology) = get_max(get_capacity_limits_discharge(s))
 max_cap_mwh(s::StorageTechnology) = get_max(get_capacity_limits_energy(s))
 max_charge_cap_mw(s::StorageTechnology) = get_max(get_capacity_limits_charge(s))
-min_cap_mw(s::StorageTechnology) = get_min(get_capacity_power_limits(s))
+min_cap_mw(s::StorageTechnology) = get_min(get_capacity_limits_discharge(s))
 min_cap_mwh(s::StorageTechnology) = get_min(get_capacity_limits_energy(s))
 min_charge_cap_mw(s::StorageTechnology) = get_min(get_capacity_limits_charge(s))
 """Get [`StorageTechnology`](@ref) `up_time`."""
-up_time(s::StorageTechnology) = get_up_time(s)
+up_time(s::StorageTechnology) = get_time_limits(s).up
 """Get [`StorageTechnology`](@ref) `duration_limits`."""
 max_duration(s::StorageTechnology) = get_max(get_duration_limits(s))
 min_duration(s::StorageTechnology) = get_min(get_duration_limits(s))
 self_discharge(s::StorageTechnology) = get_losses(s)
-"""Get [`StorageTechnology`](@ref) `region`."""
-get_region(value::StorageTechnology) = value.region
 """Get [`StorageTechnology`](@ref) `efficiency`."""
 efficiency_down(s::StorageTechnology) = get_out(get_efficiency(s))
 efficiency_up(s::StorageTechnology) = get_in(get_efficiency(s))
-inv_cost_per_mwyr(s::StorageTechnology) = get_proportional_term(get_capital_costs_discharge(s))
-inv_cost_per_mwhyr(s::StorageTechnology) = get_proportional_term(get_capital_costs_energy(s))
-inv_cost_charge_per_mwyr(s::StorageTechnology) = get_proportional_term(get_capital_costs_charge(s))
-fixed_om_cost_per_mwyr(s::StorageTechnology) = get_proportional_term(get_discharge_variable_cost(get_operation_costs(s)))
-fixed_om_cost_per_mwhyr(s::StorageTechnology) = get_fixed(get_operation_costs(s))
-fixed_om_cost_charge_per_mwyr(s::StorageTechnology) = get_proportional_term(get_charge_variable_cost(get_operation_costs(s)))
-var_om_cost_per_mwh(s::StorageTechnology) = get_vom_cost(get_discharge_variable_cost(get_operation_costs(s)))
-var_om_cost_per_mwh_in(s::StorageTechnology) = get_vom_cost(get_charge_variable_cost(get_operation_costs(s)))
+inv_cost_per_mwyr(s::StorageTechnology) = PSY.get_proportional_term(get_capital_costs_discharge(s))
+inv_cost_per_mwhyr(s::StorageTechnology) = PSY.get_proportional_term(get_capital_costs_energy(s))
+inv_cost_charge_per_mwyr(s::StorageTechnology) = PSY.get_proportional_term(get_capital_costs_charge(s))
+fixed_om_cost_per_mwyr(s::StorageTechnology) = PSY.get_proportional_term(PSY.get_value_curve(PSY.get_discharge_variable_cost(get_operation_costs(s))))
+fixed_om_cost_per_mwhyr(s::StorageTechnology) = PSY.get_fixed(get_operation_costs(s))
+fixed_om_cost_charge_per_mwyr(s::StorageTechnology) = PSY.get_proportional_term(PSY.get_value_curve(PSY.get_charge_variable_cost(get_operation_costs(s))))
+var_om_cost_per_mwh(s::StorageTechnology) = PSY.get_proportional_term(PSY.get_vom_cost(PSY.get_discharge_variable_cost(get_operation_costs(s))))
+var_om_cost_per_mwh_in(s::StorageTechnology) = PSY.get_proportional_term(PSY.get_vom_cost(PSY.get_charge_variable_cost(get_operation_costs(s))))
 
 # """Get [`StorageTechnology`](@ref) `financial_data`."""
 # get_financial_data(value::StorageTechnology) = value.financial_data
@@ -70,3 +64,4 @@ function asymmetric_storage(ts::Vector{Technology})
     findall(t -> isa(t, StorageTechnology) && !isnothing(inv_cost_charge_per_mwyr(t)), ts)
 end
 
+existing_charge_cap_mw(s::StorageTechnology) = 0.0
