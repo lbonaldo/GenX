@@ -42,84 +42,61 @@ function load_fuels_data!(setup::Dict, path::AbstractString, inputs::Dict)
     return fuel_costs, fuel_CO2
 end
 
-@doc raw"""
-    load_fuels_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
+struct FuelData
+    name::String
+    cost::Union{Vector{Float64}, Float64}
+    co2_content::Float64
+end
 
-Read input parameters from portfolio related to fuel costs and CO$_2$ content of fuels
-"""
-function load_fuels_data_p!(setup::Dict, p::Portfolio, inputs::Dict)
+function load_fuels_data!(setup::Dict, p::Portfolio, inputs::Dict)
 
-    # Fuel related inputs
-    fuels_technologies = collect(get_technologies(SupplyTechnology, p))
-
-    # Scale factor
+    T = 24
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
 
-    # Fuel costs & CO2 emissions rate for each fuel type
-    fuels = []
-    fuel_costs = Dict()
-    fuel_CO2 = Dict()
-    for tech in fuels_technologies
-        
-        #Extract multifuels
-        if tech.fuel isa Vector
-            for f in tech.fuel
-                fuel_data = Float64[]
-                # skip reading timeseries if fuel profile already stored
-                if !haskey(fuel_costs, f)
-                    for year in p.internal.ext["years"]
-                        for day in p.internal.ext["order_days"]
-                            ts = get_time_series(SingleTimeSeries, tech, f, model_year = year, order_day = day, type=f)
-                            time_array = values(ts.data) / scale_factor
-                            append!(fuel_data, time_array)
-                        end
-                    end
-                    
-                    # store information
-                    push!(fuels, f)
-                    fuel_costs[f] = fuel_data
-                    fuel_CO2[f] = d.co2[d.fuel]
-                end
+    # Process fuels data
+    fuels_data = collect_unique_fuels(p, T, scale_factor)
 
-            end
-
-        # Extract single fuel data
-        else
-            if !haskey(fuel_costs, tech.fuel)
-                fuel_data = []
-                for year in p.internal.ext["years"]
-                    for day in p.internal.ext["order_days"]
-                        ts = get_time_series(SingleTimeSeries, tech, tech.fuel, model_year = year, order_day = day, type=tech.fuel)
-                        time_array = values(ts.data) / scale_factor
-                        append!(fuel_data, time_array)
-                    end
-                end
-                # store information
-                push!(fuels, tech.fuel)
-                fuel_costs[tech.fuel] = fuel_data
-                fuel_CO2[tech.fuel] = tech.co2
-            end
-        end
-
-    end
-
-    # Check for Non column
-    if !haskey(fuel_costs, "None")
-        costs = zeros(inputs["T"])
-
-        append!(fuels, "None")
-        fuel_costs["None"] = costs
-        fuel_CO2["None"] = 0.0
-
-    end
-
-    inputs["fuels"] = fuels
-    inputs["fuel_costs"] = fuel_costs
-    inputs["fuel_CO2"] = fuel_CO2
-
+    # Add default "None" fuel if missing
+    add_default_fuel!(fuels_data, T)
+    
+    # Update inputs dictionary
+    update_inputs!(inputs, fuels_data)
+    
     println("Fuels data Successfully Read!")
+    return nothing
+end
 
-    return
+# Fuel costs & CO2 emissions rate for each fuel type
+function collect_unique_fuels(p::Portfolio, T::Int, scale_factor::Number)
+    fuel_names = String[]
+    rid_fuel_name_map = Dict{Int, String}()
+    fuel_costs_dict = Dict{String, Any}()
+    fuel_CO2_dict = Dict{String, Float64}()
+    seen_fuel_costs = Set{Union{Float64, IS.TimeSeriesKey}}()
+    unique_fuel_count = 0
+    
+    for tech in get_technologies(SupplyTechnology{PSY.ThermalStandard}, p)
+        tech_fuel_cost = fuel_costs(tech)
+        
+        if tech_fuel_cost ∉ seen_fuel_costs
+            unique_fuel_count += 1
+            fuel_data = create_fuel_entry(tech, unique_fuel_count, T, scale_factor)
+            push!(seen_fuel_costs, tech_fuel_cost)
+            
+            # Update all dictionaries
+            push!(fuel_names, fuel_data.name)
+            rid_fuel_name_map[resource_id(tech)] = fuel_data.name
+            fuel_costs_dict[fuel_data.name] = fuel_data.cost
+            fuel_CO2_dict[fuel_data.name] = fuel_data.co2_content
+        end
+    end
+    
+    return (
+        names=fuel_names, 
+        rid_map=rid_fuel_name_map, 
+        costs=fuel_costs_dict, 
+        co2=fuel_CO2_dict
+    )
 end
 
 function ensure_column!(df::DataFrame, col::AbstractString, fill_element)
@@ -127,3 +104,42 @@ function ensure_column!(df::DataFrame, col::AbstractString, fill_element)
         df[!, col] = fill(fill_element, nrow(df))
     end
 end
+
+function expand_ts(value::Union{IS.TimeSeriesKey, Float64}, T::Int)
+    if isa(value, IS.TimeSeriesKey)
+        #FIXME: learn how to get time series from a TimeSeriesKey
+        # return get_time_series(SingleTimeSeries, value, value.fuel, model_year = value.model_year, order_day = value.order_day, type = value.type)
+    end
+    return fill(value, T)
+end
+
+function create_fuel_entry(tech, idx::Int, T::Int, scale_factor::Number)
+    fuel_base_name = fuel(tech)[1]
+    fuel_name = string(fuel_base_name) * "_" * string(idx)  #FIXME: this doesn't work for multi-fuel resources    
+    fuel_cost = expand_ts(fuel_costs(tech), T) / scale_factor
+
+    co2 = haskey(co2_content(tech), fuel_base_name) ? co2_content(tech)[fuel_base_name] : 0.0
+
+    FuelData(
+        fuel_name,
+        fuel_cost,
+        co2
+    )
+end
+
+function add_default_fuel!(fuels_data, T::Int)
+    if !haskey(fuels_data.costs, "None")
+        push!(fuels_data.names, "None")
+        fuels_data.costs["None"] = zeros(T)
+        fuels_data.co2["None"] = 0.0
+    end
+end
+
+function update_inputs!(inputs::Dict, fuels_data)
+    inputs["fuels"] = fuels_data.names
+    inputs["fuel_costs"] = fuels_data.costs
+    inputs["fuel_CO2"] = fuels_data.co2
+    inputs["rid_fuel_name_map"] = fuels_data.rid_map
+end
+
+#TODO: add support for multifuels
