@@ -1,0 +1,8 @@
+Resource,Zone,Retrofit_Id,StartCap,RetCap,RetroCap,NewCap,EndCap,StartEnergyCap,RetEnergyCap,NewEnergyCap,EndEnergyCap,StartChargeCap,RetChargeCap,NewChargeCap,EndChargeCap
+cheap_thermal,1,None,791.25,-0.0,0.0,0.0,791.25,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+expensive_thermal,2,None,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+wind,2,None,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+PV1,1,None,0.0,0.0,0.0,571336.345,571336.345,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+PV2,2,None,0.0,0.0,0.0,75636.128,75636.128,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+test_storage,1,None,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+Total,n/a,n/a,791.25,0.0,0.0,646972.473,647763.723,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
