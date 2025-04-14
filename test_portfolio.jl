@@ -3,19 +3,20 @@ ENV["GENX_PRECOMPILE"] = "false"
 using Pkg;
 Pkg.activate(@__DIR__);
 using Revise
-using InfrastructureSystems
-using PowerSystems
-using PowerSystemsInvestmentsPortfolios
 using GenX
+using PowerSystemsInvestmentsPortfolios
 using Gurobi
 using TimeSeries
 using CSV
 using DataFrames
-using JLD2
-using JSON3
-using JSONSchema
-using SQLite
-using HiGHS
+# using JLD2
+# using JSON3
+# using JSONSchema
+# using SQLite
+# using HiGHS
+using Dates
+using InfrastructureSystems
+using PowerSystems
 const PSIP = PowerSystemsInvestmentsPortfolios
 const IS = InfrastructureSystems
 const PSY = PowerSystems
@@ -30,17 +31,17 @@ function test_portfolio(case_name::AbstractString)
     ### Zones ###
     ###################
 
-    z1 = Zone(
+    z1 = Node(
         name = "MA",
         id = 1
     )
 
-    z2 = Zone(
+    z2 = Node(
         name = "CT",
         id = 2
     )
 
-    z3 = Zone(
+    z3 = Node(
         name = "ME",
         id = 3
     )
@@ -89,11 +90,9 @@ function test_portfolio(case_name::AbstractString)
         fuel = [ThermalFuels.NATURAL_GAS],
         power_systems_type = "ElectricLoad",
         cofire_level_limits = Dict{ThermalFuels, MinMax}(),
-        balancing_topology = "Region",
         region = [z1],
-        base_year = 2025,
         unit_size = 250.0,
-        min_generation_percentage = 0.468,
+        min_generation_fraction = 0.468,
         capacity_limits = (min = 0.0, max = 10000000)
     )
 
@@ -120,11 +119,9 @@ function test_portfolio(case_name::AbstractString)
         fuel = [ThermalFuels.NATURAL_GAS],
         power_systems_type = "ElectricLoad",
         cofire_level_limits = Dict{ThermalFuels, MinMax}(),
-        balancing_topology = "Region",
         region = [z2],
-        base_year = 2025,
         unit_size = 250.0,
-        min_generation_percentage = 0.338,
+        min_generation_fraction = 0.338,
         capacity_limits = (min = 0.0, max = 10000000))
 
     t_me_gas = SupplyTechnology{ThermalStandard}(;
@@ -150,11 +147,9 @@ function test_portfolio(case_name::AbstractString)
         fuel = [ThermalFuels.NATURAL_GAS],
         power_systems_type = "ElectricLoad",
         cofire_level_limits = Dict{ThermalFuels, MinMax}(),
-        balancing_topology = "Region",
         region = [z3],
-        base_year = 2025,
         unit_size = 250.0,
-        min_generation_percentage = 0.474,
+        min_generation_fraction = 0.474,
         capacity_limits = (min = 0.0, max = 10000000)
     )
 
@@ -172,7 +167,6 @@ function test_portfolio(case_name::AbstractString)
         power_systems_type = "ElectricLoad",
         name = "MA_solar_pv",
         initial_capacity = 0.0,
-        balancing_topology = "Region",
         region = [z1],
         operation_costs = ThermalGenerationCost(variable = CostCurve(LinearCurve(0)),
             fixed = 18760, start_up = 0.0, shut_down = 0.0),
@@ -189,7 +183,6 @@ function test_portfolio(case_name::AbstractString)
         power_systems_type = "ElectricLoad",
         name = "CT_onshore_wind",
         initial_capacity = 0.0,
-        balancing_topology = "Region",
         region = [z2],
         operation_costs = ThermalGenerationCost(variable = CostCurve(LinearCurve(0.1)),
             fixed = 43205, start_up = 0.0, shut_down = 0.0),
@@ -206,7 +199,6 @@ function test_portfolio(case_name::AbstractString)
         power_systems_type = "ElectricLoad",
         name = "CT_solar_pv",
         initial_capacity = 0.0,
-        balancing_topology = "Region",
         region = [z2],
         operation_costs = ThermalGenerationCost(variable = CostCurve(LinearCurve(0)),
             fixed = 18760, start_up = 0.0, shut_down = 0.0),
@@ -223,7 +215,6 @@ function test_portfolio(case_name::AbstractString)
         name = "ME_onshore_wind",
         power_systems_type = "ElectricLoad",
         initial_capacity = 0.0,
-        balancing_topology = "Region",
         region = [z3],
         operation_costs = ThermalGenerationCost(variable = CostCurve(LinearCurve(0.1)),
             fixed = 43205, start_up = 0.0, shut_down = 0.0),
@@ -248,7 +239,6 @@ function test_portfolio(case_name::AbstractString)
         existing_capacity_discharge = 0.0,
         existing_capacity_energy = 0.0,
         power_systems_type = "Test",
-        balancing_topology = "Region",
         region = [z1],
         operation_costs = StorageCost(
             charge_variable_cost = CostCurve(value_curve =LinearCurve(0.15),
@@ -275,7 +265,6 @@ function test_portfolio(case_name::AbstractString)
         existing_capacity_discharge = 0.0,
         existing_capacity_energy = 0.0,
         power_systems_type = "Test",
-        balancing_topology = "Region",
         region = [z2],
         operation_costs = StorageCost(
             charge_variable_cost = CostCurve(value_curve = LinearCurve(0.15),
@@ -302,7 +291,6 @@ function test_portfolio(case_name::AbstractString)
         existing_capacity_discharge = 0.0,
         existing_capacity_energy = 0.0,
         power_systems_type = "Test",
-        balancing_topology = "Region",
         region = [z3],
         operation_costs = StorageCost(
             charge_variable_cost = CostCurve(value_curve = LinearCurve(0.15),
@@ -319,32 +307,35 @@ function test_portfolio(case_name::AbstractString)
     ######## Lines #######
     ######################
 
-    tx_ma_ct = ACTransportTechnology{ACBranch}(;
+    tx_ma_ct = NodalACTransportTechnology{ACBranch}(;
+        base_power = 1.0,
         name = "MA_to_CT",
         available = true,
-        start_region = z1,
-        end_region = z2,
+        start_node = z1,
+        end_node = z2,
         power_systems_type = "ElectricLoad",
         id = 1,
-        capital_cost = LinearCurve(12060),
+        reactance = 0.0,
+        resistance = 0.0,
+        voltage = 230.0,
+        unit_size = 2950.0,
         capacity_limits = (min = 0.0, max = 2950),
-        existing_line_capacity = 0,
-        line_loss = 0.012305837,
-        base_power = 1.0,
         financial_data = tech_finance)
 
-    tx_ma_me = ACTransportTechnology{ACBranch}(;
-        name = "MA_to_ME",
-        available = true,
-        start_region = z1,
-        end_region = z3,
-        power_systems_type = "ElectricLoad",
-        capital_cost = LinearCurve(19261),
-        id = 2,
-        capacity_limits = (min = 0.0, max = 2000),
-        existing_line_capacity = 0,
-        line_loss = 0.019653847,
+    tx_ma_me = NodalACTransportTechnology{ACBranch}(;
         base_power = 1.0,
+        capital_cost = LinearCurve(19261),
+        available = true,
+        name = "MA_to_ME",
+        start_node = z1,
+        end_node = z3,
+        id = 2,
+        power_systems_type = "ElectricLoad",
+        reactance = 0.0,
+        resistance = 0.0,
+        voltage = 230.0,
+        unit_size = 2000.0,
+        capacity_limits = (min = 0.0, max = 2000),
         financial_data = tech_finance)
 
     #####################
