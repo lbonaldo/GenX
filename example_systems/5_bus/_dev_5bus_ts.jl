@@ -1,3 +1,14 @@
+function wrap_configure_settings(case)
+    genx_settings = GenX.get_settings_path(case, "genx_settings.yml") # Settings YAML file path
+    writeoutput_settings = GenX.get_settings_path(case, "output_settings.yml") # Write-output settings YAML file path
+    setup = GenX.configure_settings(genx_settings, writeoutput_settings) # mysetup dictionary stores settings and GenX-specific parameters
+    settings_path =     GenX.get_settings_path(case)
+    solver_name = lowercase(get(setup, "Solver", ""))
+    OPTIMIZER = GenX.configure_solver(settings_path, Gurobi.Optimizer; solver_name=solver_name)
+    return setup, OPTIMIZER
+end
+
+
 using PowerSystems
 using PowerSystemsInvestmentsPortfolios
 using PowerSystemCaseBuilder
@@ -11,15 +22,6 @@ const PSIP = PowerSystemsInvestmentsPortfolios
 const IS = InfrastructureSystems
 const PSY = PowerSystems
 
-function wrap_configure_settings(case)
-    genx_settings = GenX.get_settings_path(case, "genx_settings.yml") # Settings YAML file path
-    writeoutput_settings = GenX.get_settings_path(case, "output_settings.yml") # Write-output settings YAML file path
-    setup = GenX.configure_settings(genx_settings, writeoutput_settings) # mysetup dictionary stores settings and GenX-specific parameters
-    settings_path =     GenX.get_settings_path(case)
-    solver_name = lowercase(get(setup, "Solver", ""))
-    OPTIMIZER = GenX.configure_solver(settings_path, Gurobi.Optimizer; solver_name=solver_name)
-    return setup, OPTIMIZER
-end
 
 function create_portfolio()
     sys = build_system(PSITestSystems, "c_sys5_re")
