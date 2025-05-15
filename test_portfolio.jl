@@ -20,7 +20,7 @@ using PowerSystems
 const PSIP = PowerSystemsInvestmentsPortfolios
 const IS = InfrastructureSystems
 const PSY = PowerSystems
-
+read_from_json = true
 # const PSIP_RESOURCE_TYPES = [SupplyTechnology{ThermalStandard},
 #     SupplyTechnology{RenewableDispatch}, StorageTechnology{Storage}]
 
@@ -703,13 +703,28 @@ function test_portfolio(case_name::AbstractString)
     return p_3zone
 end
 
-# Build portfolio from the function above and then run GenX
-case = joinpath(@__DIR__, "example_systems/1_three_zones")
-p = test_portfolio(case)
+if read_from_json == false
+    # Build portfolio from the function above and then run GenX
+    case = joinpath(@__DIR__, "example_systems/1_three_zones")
+    p = test_portfolio(case)
+else
+    # Load portfolio from file
+    case = joinpath(@__DIR__, "/Users/sc87/code/GenX_PowerGenome/PSIP_GenX/GenX/example_systems/portfolio_julia_20250512")
+    case_json = joinpath(case, "portfolio_julia.json")
+    p = PSIP.Portfolio(case_json)
+end
+# Run GenX case
+# run_genx_case!(case; optimizer = Gurobi.Optimizer, portfolio = p)
 run_genx_case!(case; optimizer = Gurobi.Optimizer, portfolio = p)
 
 # Testing individual build and solve functions
-path = joinpath(@__DIR__, "example_systems/1_three_zones")
+if read_from_json == false
+    # Build portfolio from the function above and then run GenX
+    path = joinpath(@__DIR__, "example_systems/1_three_zones")
+else
+    # Load portfolio from file
+    path = joinpath(@__DIR__, "/Users/sc87/code/GenX_PowerGenome/PSIP_GenX/GenX/example_systems/portfolio_julia_20250512")
+end
 
 settings_path = GenX.get_settings_path(path)
 genx_settings = GenX.get_settings_path(path, "genx_settings.yml") # Settings YAML file path, make sure InputType field is correct!

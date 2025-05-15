@@ -1,0 +1,28 @@
+{
+    "name": "",
+    "description": "",
+    "component_counts": [
+        {
+            "type": "DemandRequirement{PowerLoad}",
+            "count": 35
+        },
+        {
+            "type": "NodalACTransportTechnology{Line}",
+            "count": 112
+        },
+        {
+            "type": "Node",
+            "count": 49
+        },
+        {
+            "type": "SupplyTechnology{ThermalStandard}",
+            "count": 10
+        }
+    ],
+    "time_series_counts": [
+        {
+            "type": "SingleTimeSeries",
+            "count": 35
+        }
+    ]
+}
